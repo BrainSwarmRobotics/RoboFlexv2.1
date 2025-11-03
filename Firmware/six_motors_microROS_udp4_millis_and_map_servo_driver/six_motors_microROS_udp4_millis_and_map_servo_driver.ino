@@ -29,10 +29,10 @@ rcl_node_t node;
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if ((temp_rc != RCL_RET_OK)) {} }
 
 
-float currentAngle1 = 0, targetAngle1;
-float currentAngle2 = 0, targetAngle2; // Reverse direction
-float currentAngle3 = 180, targetAngle3; // Reverse direction
-float currentAngle4 = 0, targetAngle4; // Reverse direction
+float currentAngle1 = 90, targetAngle1;
+float currentAngle2 = 90, targetAngle2; // Reverse direction
+float currentAngle3 = 90, targetAngle3; // Reverse direction
+float currentAngle4 = 90, targetAngle4; // Reverse direction
 float currentAngle5 = 0, targetAngle5; // Reverse direction
 
 const float stepSize = 3.0; // Degrees per update
