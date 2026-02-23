@@ -1,159 +1,86 @@
-# 🦾 RoboFlex-ROS2: 6-DOF Robotic Arm with ESP32, Micro-ROS, and MoveIt
+# RoboFlex Educational Robotic Arm
 
-🚀 **RoboFlex-ROS2** is an open-source robotic arm powered by **ESP32**, **Micro-ROS**, and **ROS 2**, designed for precise motion planning using **MoveIt**. This project aims to provide a modular, easy-to-use framework for robotic manipulation with real-time control.
+RoboFlex is a 4-DOF robotic arm with simulation and real hardware control on ROS 2.
 
----
+![RoboFlex](resources/robotflex.png)
 
-## 📜 Table of Contents
-- [🛠 Features](#-features)
-- [📦 Hardware Requirements](#-hardware-requirements)
-- [🖥️ Software Stack](#️-software-stack)
-- [🚀 Installation Guide](#-installation-guide)
-- [🤖 ROS 2 Integration](#-ros-2-integration)
-- [🎯 Motion Planning with MoveIt](#-motion-planning-with-moveit)
-- [📂 Repository Structure](#-repository-structure)
-- [🚀 Running the Robotic Arm](#-running-the-robotic-arm)
-- [📸 Demos & Visualization](#-demos--visualization)
-- [🤝 Contributing](#-contributing)
-- [📜 License](#-license)
-- [📞 Contact](#-contact)
+## Stack
 
----
+- OS: Ubuntu 24.04 LTS
+- ROS 2: Jazzy Jalisco
+- Motion planning: MoveIt 2
+- Simulation: Gazebo Sim (GZ)
+- Hardware transport: plain UDP (one-way motor command stream)
 
-## 🛠 Features
-- ✅ **5 Degrees of Freedom (DOF)**
-- ✅ **ESP32 + Micro-ROS** for real-time control
-- ✅ **ROS 2 & MoveIt** for advanced motion planning
-- ✅ **Supports RViz & Gazebo Simulation**
-- ✅ **Low-cost and DIY-friendly**
-- ✅ **Modular architecture for easy customization**
+## Workspace Architecture
 
----
+- [Description](roboflex_ros2/roboflex_description)
+  - URDF/Xacro, meshes, worlds, models
+- [Control](roboflex_ros2/roboflex_control)
+  - ros2_control hardware plugin + controller configs/launches
+- [Bringup](roboflex_ros2/roboflex_bringup)
+  - Simulation and real-hardware top-level launches
+- [MoveIt](roboflex_ros2/roboflex_moveit)
+  - MoveIt config and MoveIt-specific launches
+- [Firmware](roboflex_pio)
+  - ESP32 PlatformIO firmware (UDP listener)
 
-## 📦 Hardware Requirements
-| Component           | Specification                    |
-| ------------------- | -------------------------------- |
-| **Microcontroller** | ESP32 with Micro-ROS             |
-| **Servos/Motors**   | MG996R / MG90S (customizable)    |
-| **Power Supply**    | 6V–12V (depending on motor type) |
-| **Communication**   | WiFi, UART                       |
-| **Frame Material**  | Aluminum / 3D Printed Parts      |
-
----
-
-## 🖥️ Software Stack
-- **Operating System:** Ubuntu 22.04 (Recommended)
-- **Robot Middleware:** ROS 2 (Humble)
-- **Motion Planning:** MoveIt 2
-- **Simulation:** Gazebo / RViz
-- **Microcontroller Firmware:** Micro-ROS on ESP32
-- **Programming Languages:** C++, Python
-
----
-
-## 🚀 Installation Guide
-### 1️⃣ Install ROS 2
-Follow the official ROS 2 installation guide:  
-🔗 [https://docs.ros.org/en/humble/Installation.html](https://docs.ros.org/en/humble/Installation.html)
-
-### 2️⃣ Install Micro-ROS on ESP32
-
-Refer to this documentation for setup
-
-```sh
-https://github.com/munn33b/esp32-microROS/blob/main/README.md
+## Build Workspace
+- Make sure usb prot communicatino is allowed
+- Pre Reqs
+```bash
+sudo apt update
+sudo apt install -y \
+  git build-essential cmake \
+  python3 python3-pip python3-venv python3-dev python3-setuptools python3-wheel \
+  pipx \
+  mesa-utils libgl1-mesa-dri libegl1
+pipx ensurepath
+pipx install platformio
+```
+```bash
+source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash
+cd ~/ros2_ws
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --packages-select roboflex_description roboflex_control roboflex_moveit roboflex_bringup
+source install/setup.bash
 ```
 
-(Refer to official Micro-ROS documentation for configuration)
+## Firmware (ESP32)
 
-### 3️⃣ Clone This Repository
+Configure and flash from [`roboflex_pio`](roboflex_pio):
 
 ```bash
-git clone https://github.com/BrainSwarmRobotics/Zero2RoboticArm-6_DOF_Robotic_Arm_MicroROS_ROS2
+cd ~/ros2_ws/src/RoboFlexv2.1/roboflex_pio
+pio run -e prod
+pio run -e prod -t upload
+pio device monitor -b 115200
 ```
 
-### 4️⃣ Install Dependencies
+
+## Canonical Launches
+URDF/joint-limit debug (no hardware required):
 
 ```bash
-sudo apt install ros-humble-ros2-control ros-humble-ros2-controllers ros-humble-ros-ign ros-humble-ign-ros2-control ros-humble-ros-ign-gazebo
+ros2 launch roboflex_bringup sensors_rviz.launch.py
 ```
 
-### 4️⃣ Configure Packages
 
-Go to `brainswarm_ws/src/brainswarm_robotic_arm/launch`. Modify **Line 45** and **Line 48** with appropriate Paths.
-
-### 4️⃣ Build Workspace
+Simulation + MoveIt:
 
 ```bash
-cd brainswarm_ws
+ros2 launch roboflex_bringup simulation.launch.py
 ```
 
- Run the following command
+Real hardware control-only
 
 ```bash
-colcon build
+ros2 launch roboflex_bringup hardware_gui.launch.py with_moveit:=false
 ```
 
-### 4️⃣ Running the System
 
-#### Running the Simulation
-
-In terminal, run the following command to start the simulation
+## Real hardware + MoveIt:
 
 ```bash
-ros2 launch brainswarm_robotic_arm simulation.launch.py
+ros2 launch roboflex_bringup hardware_gui.launch.py firmware_ip:=10.54.47.26 firmware_port:=9999
 ```
-
-#### Starting Interface for Real Hardware Integration
-
-```bash
-ros2 launch brainswarm_robotic_arm real_hardware.launch.py
-```
-
-For starting controllers, you need to run following script, inside the root of your `ROS2 Workspace` run following command
-
-```
-./src/brainswarm_robotic_arm/start_controllers
-```
-
-It will start all controllers
-
-To run the complete robotic Arm system, make sure you have `micro_ros_agent` running. In the `Firmware/six_motors_microROS_udp4_millis_and_map_servo_driver/six_motors_microROS_udp4_millis_and_map_servo_driver.ino` file, modify line 84 with appropriate values.
-
-After that, run the Micro ROS Agent on terminal
-
-```bash
-ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888
-```
-
-After running above command, switch on / power on the Robotic Arm.
-
-**Note:** The sequence is important, make sure the `micro_ros_agent` is running before powering on the robotic arm. After that, proceed with further steps.
-
-#### Starting the Motion Planner
-
-```
-ros2 launch brainswarm_robotic_arm_moveit_config move_group.launch.py
-```
-
-#### Setting SIM Time Parameter
-
-```
-ros2 param set /move_group use_sim_time True
-```
-
-#### Running RViz
-
-```
-ros2 run rviz2 rviz2
-```
-
-### 4️⃣ Topics and Actions
-
-| Topic Name                                              | Description                                                  |
-| ------------------------------------------------------- | ------------------------------------------------------------ |
-| /joint_states                                           | Feedback of Joint Values from Simulation                     |
-| /real_robot/joint_states                                | Feedback of Joint States from Real Robot                     |
-| /arm_controller/follow_joint_trajectory                 | Action Server that accepts Goal Joint Trajectory Commands for Simulation |
-| /real_robot/real_arm_controller/follow_joint_trajectory | Action Server that accepts Goal Joint Trajectory Commands for Real Hardware |
-| /motor_commands                                         | Topic that is configured in Hardware Interface to send Joint Angles to Real Hardware |
